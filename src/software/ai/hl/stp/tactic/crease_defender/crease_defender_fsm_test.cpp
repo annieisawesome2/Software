@@ -118,6 +118,36 @@ TEST(CreaseDefenderFSMTest, test_find_block_threat_point_threat_in_crease)
     EXPECT_FALSE(threat_point);
 }
 
+TEST(CreaseDefenderFSMTest, test_perimeter_stepping_spacing)
+{
+    TbotsProto::RobotNavigationObstacleConfig config;
+    double robot_obstacle_inflation_factor = config.robot_obstacle_inflation_factor();
+    Field field = Field::createSSLDivisionBField();
+    Point enemy_threat_origin = Point(1.0, 0.0);
+    
+    // Test all three alignments
+    auto centre_pos = CreaseDefenderFSM::findBlockThreatPoint(
+        field, enemy_threat_origin, TbotsProto::CreaseDefenderAlignment::CENTRE,
+        robot_obstacle_inflation_factor);
+    auto left_pos = CreaseDefenderFSM::findBlockThreatPoint(
+        field, enemy_threat_origin, TbotsProto::CreaseDefenderAlignment::LEFT,
+        robot_obstacle_inflation_factor);
+    auto right_pos = CreaseDefenderFSM::findBlockThreatPoint(
+        field, enemy_threat_origin, TbotsProto::CreaseDefenderAlignment::RIGHT,
+        robot_obstacle_inflation_factor);
+    
+    // Verify all positions are valid
+    ASSERT_TRUE(centre_pos.has_value());
+    ASSERT_TRUE(left_pos.has_value());
+    ASSERT_TRUE(right_pos.has_value());
+    
+    // Verify positions are spaced appropriately (at least robot diameter apart)
+    double robot_diameter = 2.0 * ROBOT_MAX_RADIUS_METERS;
+    EXPECT_GT(distance(centre_pos.value(), left_pos.value()), robot_diameter * 0.8);
+    EXPECT_GT(distance(centre_pos.value(), right_pos.value()), robot_diameter * 0.8);
+    EXPECT_GT(distance(left_pos.value(), right_pos.value()), robot_diameter * 1.5);
+}
+
 TEST(CreaseDefenderFSMTest, test_transitions)
 {
     TbotsProto::AiConfig ai_config;

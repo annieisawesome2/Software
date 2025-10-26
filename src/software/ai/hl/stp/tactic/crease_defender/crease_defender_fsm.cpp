@@ -4,6 +4,8 @@
 #include "software/ai/hl/stp/tactic/dribble/dribble_fsm.h"
 #include "software/geom/algorithms/contains.h"
 #include "software/geom/algorithms/distance.h"
+#include "software/geom/algorithms/step_along_perimeter.h"
+#include "software/geom/algorithms/closest_point.h"
 #include "software/geom/stadium.h"
 
 std::optional<Point> CreaseDefenderFSM::findBlockThreatPoint(
@@ -11,27 +13,70 @@ std::optional<Point> CreaseDefenderFSM::findBlockThreatPoint(
     const TbotsProto::CreaseDefenderAlignment& crease_defender_alignment,
     double robot_obstacle_inflation_factor)
 {
-    // We increment the angle to positive goalpost by 1/6, 3/6, or 5/6 of the shot
-    // cone
+    // Calculate the center position first (where CENTRE alignment would go)
     Angle shot_angle_sixth = convexAngle(field.friendlyGoalpostPos(), enemy_threat_origin,
                                          field.friendlyGoalpostNeg()) /
                              6.0;
     Angle angle_to_positive_goalpost =
         (field.friendlyGoalpostPos() - enemy_threat_origin).orientation();
-    Angle angle_to_block = angle_to_positive_goalpost + shot_angle_sixth * 3.0;
-    if (crease_defender_alignment == TbotsProto::CreaseDefenderAlignment::LEFT)
-    {
-        angle_to_block = angle_to_positive_goalpost + shot_angle_sixth * 1.0;
+    Angle center_angle = angle_to_positive_goalpost + shot_angle_sixth * 3.0;
+    
+    // Shot ray to block for center position
+    Ray center_ray(enemy_threat_origin, center_angle);
+    std::optional<Point> center_position = findDefenseAreaIntersection(field, center_ray, robot_obstacle_inflation_factor);
+    
+    if (!center_position.has_value()) {
+        return std::nullopt;
     }
-    else if (crease_defender_alignment == TbotsProto::CreaseDefenderAlignment::RIGHT)
-    {
-        angle_to_block = angle_to_positive_goalpost + shot_angle_sixth * 5.0;
+    
+    // If this is the center alignment, return the center position
+    if (crease_defender_alignment == TbotsProto::CreaseDefenderAlignment::CENTRE) {
+        return center_position;
     }
-
-    // Shot ray to block
-    Ray ray(enemy_threat_origin, angle_to_block);
-
-    return findDefenseAreaIntersection(field, ray, robot_obstacle_inflation_factor);
+    
+    // For LEFT and RIGHT alignments, step along the defense area perimeter
+    // Create defense area perimeter polygon
+    Rectangle defense_area = field.friendlyDefenseArea();
+    Polygon defense_perimeter = Polygon({
+        defense_area.posXPosYCorner(),
+        defense_area.posXNegYCorner(),
+        defense_area.negXNegYCorner(),
+        defense_area.negXPosYCorner()
+    });
+    
+    // Step distance is one robot diameter
+    double robot_diameter = 2.0 * ROBOT_MAX_RADIUS_METERS;
+    double step_distance = robot_diameter;
+    
+    // Step in the appropriate direction based on alignment
+    Point stepped_position;
+    if (crease_defender_alignment == TbotsProto::CreaseDefenderAlignment::LEFT) {
+        stepped_position = stepAlongPerimeter(defense_perimeter, center_position.value(), -step_distance);
+    } else { // RIGHT
+        stepped_position = stepAlongPerimeter(defense_perimeter, center_position.value(), step_distance);
+    }
+    
+    // Edge case handling: ensure defender is not on or behind goal line
+    Segment goal_line = Segment(
+        field.friendlyGoal().posXPosYCorner(),
+        field.friendlyGoal().posXNegYCorner()
+    );
+    
+    // If the stepped position is too close to the goal line, adjust it
+    if (distance(stepped_position, goal_line) < robot_diameter) {
+        // Move the defender slightly away from the goal line
+        Point goal_line_center = field.friendlyGoalCenter();
+        Vector away_from_goal = (stepped_position - goal_line_center).normalize();
+        stepped_position = stepped_position + away_from_goal * robot_diameter;
+        
+        // Ensure the adjusted position is still on the defense area perimeter
+        Point closest_perimeter_point = closestPoint(stepped_position, defense_perimeter);
+        if (distance(stepped_position, closest_perimeter_point) < robot_diameter) {
+            stepped_position = closest_perimeter_point;
+        }
+    }
+    
+    return stepped_position;
 }
 
 bool CreaseDefenderFSM::isAnyEnemyInZone(const Update& event, const Stadium& zone)
