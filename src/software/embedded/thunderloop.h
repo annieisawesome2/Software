@@ -10,7 +10,7 @@
 #include "shared/2021_robot_constants.h"
 #include "shared/constants.h"
 #include "software/embedded/primitive_executor.h"
-#include "software/embedded/redis/redis_client.h"
+#include "software/embedded/toml_config/toml_config_client.h"
 #include "software/embedded/services/motor.h"
 #include "software/embedded/services/network/network.h"
 #include "software/embedded/services/power.h"
@@ -62,7 +62,7 @@ class Thunderloop
     std::unique_ptr<PowerService> power_service_;
 
     // Clients
-    std::unique_ptr<RedisClient> redis_client_;
+    std::unique_ptr<TomlConfigClient> toml_config_client_;
 
    private:
     /*

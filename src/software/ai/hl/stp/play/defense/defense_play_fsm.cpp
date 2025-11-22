@@ -94,6 +94,7 @@ void DefensePlayFSM::updateCreaseAndPassDefenders(
             defender_assignment = assignments.front();
         }
 
+        // only check if is on the back goaline or not....
         if (defender_assignment.type == CREASE_DEFENDER && max_num_crease_defenders > 0)
         {
             crease_defender_assignments.emplace_back(defender_assignment);

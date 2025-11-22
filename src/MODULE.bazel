@@ -24,6 +24,7 @@ bazel_dep(name = "rules_proto", version = "7.1.0")
 bazel_dep(name = "yaml-cpp", version = "0.8.0")
 bazel_dep(name = "buildifier_prebuilt", version = "8.0.3")
 bazel_dep(name = "pybind11_protobuf", version = "0.0.0-20250210-f02a2b7")
+bazel_dep(name = "tomlplusplus", version = "3.4.0")
 
 ##############################################
 # Load PIP packages and our Requirements
@@ -102,14 +103,6 @@ use_repo(protoc, "com_google_protobuf", "toolchains_protoc_hub")
 # The exception to this is if the repo does not contain a MODULE.bazel support
 ###########################################################################
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-# Dep for cpp_redis
-http_archive(
-    name = "tacopie",
-    sha256 = "bbdebecdb68d5f9eb64170217000daf844e0aee18b8c4d3dd373d07efd9f7316",
-    strip_prefix = "tacopie-master",
-    url = "https://github.com/cylix/tacopie/archive/master.zip",
-)
 
 # TODO(#3315): Used for on-robot value storage - deprecation soon
 http_archive(
