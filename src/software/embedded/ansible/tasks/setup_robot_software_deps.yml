@@ -17,15 +17,13 @@
   args:
     chdir: ~/
 
-- name: Configure Redis persistence setting
+- name: Create TOML config directory
   become: true
   become_method: ansible.builtin.sudo
-  ansible.builtin.lineinfile:
-    path: /etc/redis/redis.conf
-    state: present
-    regexp: ^(appendonly)
-    line: "appendonly yes"
-    backrefs: true
+  ansible.builtin.file:
+    path: /etc/thunderbots
+    state: directory
+    mode: "0755"
 
 - name: Disable WiFi power management
   block:

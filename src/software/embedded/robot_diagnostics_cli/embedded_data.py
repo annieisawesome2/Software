@@ -1,5 +1,6 @@
 import math
-import redis
+import os
+import toml
 from software.py_constants import *
 from proto.import_all_protos import *
 from software.embedded.constants.py_constants import (
@@ -15,44 +16,63 @@ class EmbeddedData:
     """
 
     def __init__(self) -> None:
-        # Initializes the redis cache connection
-        self.redis = redis.StrictRedis(
-            host=REDIS_DEFAULT_HOST,
-            port=REDIS_DEFAULT_PORT,
-            charset="utf-8",
-            decode_responses=True,
-        )
+        # Load TOML config file
+        # Use the constant from py_constants if available, otherwise default
+        try:
+            self.config_file_path = TOML_CONFIG_FILE_PATH
+        except NameError:
+            # Fallback if constant not available
+            self.config_file_path = "/etc/thunderbots/robot_config.toml"
+        self.config = self._load_config()
         self.epoch_timestamp_seconds = 0
         self.battery_voltage = 0
         self.primitive_packet_loss_percentage = 0
         self.primitive_executor_step_time_ms = 0
 
+    def _load_config(self) -> dict:
+        """Load TOML configuration file."""
+        if not os.path.exists(self.config_file_path):
+            return {}
+        try:
+            with open(self.config_file_path, "r") as f:
+                return toml.load(f)
+        except Exception as e:
+            print(f"Warning: Failed to load TOML config from {self.config_file_path}: {e}")
+            return {}
+
+    def _get_value(self, key: str) -> str:
+        """Get a value from TOML config, removing leading slash from key."""
+        # Remove leading slash if present
+        normalized_key = key.lstrip("/")
+        value = self.config.get(normalized_key, "")
+        return str(value) if value is not None else ""
+
     def get_robot_id(self) -> str:
-        return str(self.redis.get(ROBOT_ID_REDIS_KEY))
+        return self._get_value(ROBOT_ID_CONFIG_KEY)
 
     def get_network_interface(self) -> str:
-        return str(self.redis.get(ROBOT_NETWORK_INTERFACE_REDIS_KEY))
+        return self._get_value(ROBOT_NETWORK_INTERFACE_CONFIG_KEY)
 
     def get_channel_id(self) -> str:
-        return str(self.redis.get(ROBOT_MULTICAST_CHANNEL_REDIS_KEY))
+        return self._get_value(ROBOT_MULTICAST_CHANNEL_CONFIG_KEY)
 
     def get_kick_constant(self) -> str:
-        return str(self.redis.get(ROBOT_KICK_CONSTANT_REDIS_KEY))
+        return self._get_value(ROBOT_KICK_CONSTANT_CONFIG_KEY)
 
     def get_kick_coeff(self) -> str:
-        return str(self.redis.get(ROBOT_KICK_EXP_COEFF_REDIS_KEY))
+        return self._get_value(ROBOT_KICK_EXP_COEFF_CONFIG_KEY)
 
     def get_chip_pulse_width(self) -> str:
-        return str(self.redis.get(ROBOT_CHIP_PULSE_WIDTH_REDIS_KEY))
+        return self._get_value(ROBOT_CHIP_PULSE_WIDTH_CONFIG_KEY)
 
     def get_current_draw(self) -> str:
-        return str(self.redis.get(ROBOT_CURRENT_DRAW_REDIS_KEY))
+        return self._get_value(ROBOT_CURRENT_DRAW_CONFIG_KEY)
 
     def get_battery_volt(self) -> str:
-        return str(self.redis.get(ROBOT_BATTERY_VOLTAGE_REDIS_KEY))
+        return self._get_value(ROBOT_BATTERY_VOLTAGE_CONFIG_KEY)
 
     def get_cap_volt(self) -> str:
-        return str(self.redis.get(ROBOT_CAPACITOR_VOLTAGE_REDIS_KEY))
+        return self._get_value(ROBOT_CAPACITOR_VOLTAGE_CONFIG_KEY)
 
     def __clamp(self, val: float, min_val: float, max_val: float) -> float:
         """Simple Math Clamp function (Faster than numpy & fewer dependencies)

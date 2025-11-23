@@ -31,7 +31,7 @@ py_binary(
         requirement("typer_shell"),
         requirement("rich"),
         requirement("protobuf"),
-        requirement("redis"),
+        requirement("toml"),
         requirement("inquirerpy"),
     ],
 )
@@ -55,7 +55,7 @@ py_library(
     srcs = [":embedded_communication.py"],
     deps = [
         requirement("protobuf"),
-        requirement("redis"),
+        requirement("toml"),
     ],
 )
 
@@ -63,6 +63,6 @@ py_library(
     name = "embedded_data",
     srcs = [":embedded_data.py"],
     deps = [
-        requirement("redis"),
+        requirement("toml"),
     ],
 )

@@ -39,9 +39,9 @@ More commands available [here](useful-robot-commands.md#off-robot-commands)
 
 To learn more about how it works, [see the RFC](https://docs.google.com/document/d/1hN3Us2Vjr8z6ihqUVp_3L7rrjKc-EZ-l2hZJc31gNOc/edit)
 
-## Redis
+## TOML Configuration
 
-[Redis](https://redis.io/docs/about/) is an in-memory key-value store. This allows us to share state between processes as well as modify values dynamically through the provided [cli](useful-robot-commands#redis). Values also persists between boots.
+Robot configuration is stored in a TOML file at `/etc/thunderbots/robot_config.toml`. This file contains both static configuration values (robot ID, network interface, etc.) and dynamic runtime values (battery voltage, current draw). The TOML format provides a simple, human-readable way to manage robot configuration without requiring a separate service like Redis. Configuration values persist between boots and can be edited directly or through the [robot diagnostics CLI](useful-robot-commands#toml-configuration).
 
 # Thunderloop
 

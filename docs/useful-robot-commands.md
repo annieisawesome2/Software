@@ -21,7 +21,7 @@
 - [On Robot Commands](#on-robot-commands)
   - [Systemd Services](#systemd-services)
   - [Debugging Uart](#debugging-uart)
-  - [Redis](#redis)
+  - [TOML Configuration](#toml-configuration)
 
 <!--TOC-->
 
@@ -63,14 +63,17 @@ flowchart TD
                                               `service thunderloop restart`)
     tloop_status --> |Running| tloop_logs(Check Thunderloop logs for errors
                                           `journalctl -fu thunderloop -n 300`)
-    tloop_logs --> |No Errors| check_redis(Does `redis-cli get /network_interface` return 'wlan0' or 'tbots', 
-    and does `redis-cli get /channel_id` return '0'?)
+    tloop_logs --> |No Errors| check_config(Does TOML config have correct values?
+                                      Check: `robot_diagnostics_cli config` or `cat /etc/thunderbots/robot_config.toml`
+                                      network_interface should be 'wlan0' or 'tbots'
+                                      channel_id should be '0')
     tloop_logs --> |Contains Errors| rip2("Fix errors or check errors with a lead")
-    check_redis --> |No| update_redis("Update Redis constants by running:
-                                      `redis-cli set /network_interface 'wlan0'` (for Nanos) OR `redis-cli set /network_interface 'tbots'` (for Pis)
-                                      `redis-cli set /channel_id '0'`")
-    check_redis --> |Yes| rip3(Check with a lead)
-    update_redis --> tloop_restart
+    check_config --> |No| update_config("Update TOML config by editing:
+                                      `sudo nano /etc/thunderbots/robot_config.toml`
+                                      Set network_interface = 'wlan0' (for Nanos) OR 'tbots' (for Pis)
+                                      Set channel_id = '0'")
+    check_config --> |Yes| rip3(Check with a lead)
+    update_config --> tloop_restart
     tloop_restart --> tloop_status
     end
 ```
@@ -226,27 +229,35 @@ Powerloop uart communication is encoded so you can't read it from screen and wil
 
 Pressing the reset button once will send a status msg over its connected port. This is useful for sanity checking.
 
-## Redis
+## TOML Configuration
 
-Current redis keys that are used are available in `software/constants.h`.  Official Documentation [here](https://redis.io/docs/manual/cli/).
+Robot configuration is stored in a TOML file at `/etc/thunderbots/robot_config.toml`. The configuration keys are defined in `software/constants.h`.
 
-<b>Values should be strings. For example `set \ROBOT_ID "0"`</b>
+To view the current configuration values, use the robot diagnostics CLI:
+```bash
+robot_diagnostics_cli config
+```
 
-Redis repl can be accessed through the following command.
+To edit the configuration file directly:
+```bash
+sudo nano /etc/thunderbots/robot_config.toml
+```
 
-`redis-cli`
+Example configuration file:
+```toml
+robot_id = "1"
+channel_id = "0"
+network_interface = "wlan0"
+kick_constant = "0"
+kick_coeff = "0.0"
+chip_pulse_width = "0"
+battery_voltage = "0.0"
+current_draw = "0.0"
+cap_voltage = "0.0"
+```
 
-Other common commands (once inside redis repl):
-
-`get <redis_key>`
-
-`set <redis_key> <value>`
-
-To Exit:
-
-`quit`
-
-Alternative (without entering redis repl):
-
-`redis-cli get <redis_key>` or `redis-cli set <redis_key> <value>`
+After editing the file, restart Thunderloop for changes to take effect:
+```bash
+sudo systemctl restart thunderloop
+```
 
