@@ -22,6 +22,7 @@ Point DribbleFSM::findInterceptionPoint(const Robot& robot, const Ball& ball,
 {
     static constexpr double BALL_MOVING_SLOW_SPEED_THRESHOLD   = 0.3;
     static constexpr double INTERCEPT_POSITION_SEARCH_INTERVAL = 0.1;
+    static constexpr double OFFSET_INTO_BALL_WHEN_ALIGNED_M    = 0.05;
     if (ball.velocity().length() < BALL_MOVING_SLOW_SPEED_THRESHOLD)
     {
         auto face_ball_vector = (ball.position() - robot.position());
@@ -42,7 +43,7 @@ Point DribbleFSM::findInterceptionPoint(const Robot& robot, const Ball& ball,
             ai_config_ptr->dribble_tactic_config()
                 .max_robot_angular_vel_when_getting_possession_deg_per_s();
 
-        double offset_to_ball = 0.0;
+        double offset_to_ball = -OFFSET_INTO_BALL_WHEN_ALIGNED_M;
         if (!dribbler_aligned_with_ball || robot_turning_too_fast)
         {
             // The ball is not infront of the robot, or the robot is turning too fast
